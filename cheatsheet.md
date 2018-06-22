@@ -37,10 +37,10 @@ _          == _             = False
 `pairs xs ys = [ (x,y) | x <- xs, y <- ys ]`
 
 
-##### Fachbegriffe
- - Ausdrucksstarkes Typsystem
- - Parametrische Polymorphie
- - Ad-Hoc Polymorphie
+##### Terms
+ - "Ausdrucksstarkes Typsystem"
+ - Parametric Polymorphism
+ - Ad-Hoc Polymorphism
  - higher order function
     Functions as parameters
  - Pure
@@ -50,7 +50,6 @@ _          == _             = False
  - Applicative Functor
  - Monad
  - 
-#### Monad
 
 #### Functor
 Translate "foreign" function for use in this "category" (e.g. container)
@@ -115,6 +114,97 @@ listadd' :: [Int] -> [Int] -> [Int]
 listadd' xs ys = pure (+) <*> xs <*> ys 
 ```
 With `<*>` we can go as long as we want! No need for "fmap, fmap2, fmap3, .."
+#### Monad
+*This entire section is pretty much stolen from [Prof. Weirich ](http://www.seas.upenn.edu/~cis552/13fa/lectures/stub/Monads.html)*
+By default, Haskell functions are pure. Sometimes we need impure functions, like IO.
+Monads integrate "impure" programming into Haskell, but they are *much* more general than that.
+
+Consider this function, it's zipTree but with Maybe so we can catch errors.
+```
+zipTree :: Tree a -> Tree b -> Maybe (Tree (a,b))
+zipTree (Leaf a) (Leaf b) = 
+    Just (Leaf (a,b))   <-------------------- this is how we    
+zipTree (Branch l r) (Branch l' r') =          return a value
+   ~~~~~~~~~~~~~~~~~~~~~~                              |
+   case zipTree l l' of                                |
+     Nothing -> Nothing                                |
+     Just l'' ->           <------- This is how we     |
+   ~~~~~~~~~~~~~~~~~~~~             use a value        |
+       case zipTree r r' of         |                  |
+         Nothing -> Nothing   <-----|                  |
+         Just r'' ->                                   |
+        ~~~~~~~~~~~~~~~~~~~~~~~                        |
+            Just (Branch l'' r'')   <------------------|
+zipTree _ _ = Nothing
+```
+Some patterns repeat. 
+Returning a value:
+```
+  Just (Leaf(a,b))
+  Just x 
+```
+Let's make a pattern out of it and name it "return":
+```
+return :: a -> Maybe a                 
+return x = Just x
+```
+
+For using a value we have:
+```
+case zipTree l l' of                 
+  Nothing -> Nothing
+  Just l'' -> ... 
+    do something with l''
+
+case zipTree r r' of                 
+  Nothing -> Nothing
+  Just r'' -> ... 
+    do something with r''
+```
+General pattern:
+```
+case x of 
+  Nothing -> Nothing
+  Just y -> f y
+```
+Name that pattern ("bind") or ("use x in f"):
+```
+(>>=) :: Maybe a -> (a -> Maybe b) -> Maybe b
+x >>= f = 
+  case x of 
+    Nothing -> Nothing
+    Just y  -> f y
+```
+If the first argument is `Nothing` then the second argument is ignored and `Nothing` is returned as the result. Otherwise, if the first argument is of the form `Just x`, then the second argument is applied to `x` to give a result of type `Maybe b`.
+
+Now we can refactor the code from the beginning!
+```
+zipTree :: Tree a -> Tree b -> Maybe (Tree (a,b))
+zipTree (Leaf a) (Leaf b)           = return (Leaf (a,b))
+zipTree (Branch l r) (Branch l' r') = do
+   l'' <- (zipTree l l')
+   r'' <- (zipTree r r') 
+   return (Branch l'' r'')
+zipTree _ _ = Nothing
+```
+List as monad:
+```
+instance Monad [] where
+  -- return x = [x]
+  -- bind :: [a] -> (a -> [b]) -> [b]
+  bind xs f = [ y | x <- xs, y <- f x ] 
+  
+instance Functor [] where
+  fmap' = map
+
+instance Applicative [] where
+  -- pure :: a -> [a]
+  pure x    = [x]
+  -- (<*>) :: [a -> b] -> [a] -> [b]
+  gs <*> xs = [ g x | g <- gs, x <- xs ]
+
+```
+
 #### Parser
 
 #### Foldable
@@ -125,3 +215,5 @@ With `<*>` we can go as long as we want! No need for "fmap, fmap2, fmap3, .."
 
 #### GADTS
 
+### Footnotes
+[^cis552monads]: http://www.seas.upenn.edu/~cis552/13fa/lectures/stub/Monads.html
