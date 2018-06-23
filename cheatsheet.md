@@ -1,16 +1,17 @@
 #### Basics
+##### Paranthesis
+$ and .
 ##### Guards
-```
+```haskell
 sign :: Integer -> Integer
 sign z  | z < 0       = -1
         | z > 0       = 1
         | otherwise   = 0
 ```
 ##### Anonymous function
-```
-sign' :: Integer -> Integer
-sign' = \z -> vorzeichen z
-```
+`sign' :: Integer -> Integer`
+`sign' = \z -> vorzeichen z`
+
 ##### Quicksort
 ```
 qsort :: Ord a => [a] -> [a]
@@ -22,7 +23,7 @@ qsort (x:xs) = qsort (smaller xs) ++ [x] ++ qsort (greater xs)
 ```
 ##### Declarations
 ###### Type
-```
+```haskell
 data Tree a = Leaf  a
             | Node a (Tree a) (Tree a)
 ```
@@ -49,12 +50,18 @@ _          == _             = False
    Translate "foreign" function for use in this "category" (e.g. container)
  - Applicative Functor
  - Monad
- - 
+ - Infix
+   prefix the infix operator *+* `(+) 2 3`
+   infix the prefix function *concatPrint* ``"a" `concatPrint` "b"``
+ - currying
+   `curry fst 1 2` (two parameters instead of tuple as parameter)
+   uncurry converts a curried function to a function on pairs.
+   `uncurry (+) (1,2)` (one tuple instead of two parameter)
 
 #### Functor
 Translate "foreign" function for use in this "category" (e.g. container)
 These laws have to be true:
-```
+```haskell
 fmap id = id
 fmap (g . h) = fmap g . fmap h
 
@@ -63,7 +70,7 @@ id x = x
 ```
 
 Define functor instances:
-```
+```haskell
 instance Functor Tree where
   fmap' = maptree
 
@@ -206,7 +213,74 @@ instance Applicative [] where
 ```
 
 #### Parser
+`' ' <$ char '+'` = replace + with space
+`<|>` =  If the left succeeds, its result becomes the result of `<|>`. If it fails, the result becomes the result of the right parser
 
+1. newtype 
+`newtype Parser a = P (String -> [ (a, String) ] )`
+2. parse
+
+`parse :: Parser a -> String ->  [ (a, String) ]`
+`parse (P p) input = p input`
+3. parse a single char
+```haskell
+> item :: Parser Char
+> item = P (\input -> case input of
+>                       []     -> []
+>                       (x:xs) -> [ (x, xs) ])
+```
+4. applicative functor for chaining with `<*>`
+```haskell
+instance Functor Parser where
+  -- fmap :: (a -> b) -> Parser a -> Parser b
+  fmap f p = P (\input -> case parse p input of
+                            []        -> []
+                            [(x, xs)] -> [(f x, xs)])
+                            
+instance Applicative Parser where
+  -- pure  :: a -> Parser a
+  pure x = P (\input -> [(x, input)])
+  -- (<*>) :: Parser (a -> b) -> Parser a -> Parser b
+  pf <*> px = P (\input -> case parse pf input of
+                           []            -> []
+                           [(f, output)] -> parse (fmap f px) output)
+```
+5. now we can do this:
+```haskell
+take1and3 :: Parser (Char, Char)
+take1and3 = pure f <*> item <*> item <*> item
+  where
+    x y z = (x, z)
+```
+6. let's go monad
+```haskell
+instance Monad Parser where
+  -- (>>=) :: Parser a -> (a -> Parser b) -> Parser b
+  p >>= f = P (\input -> case parse p input of
+                        []            -> []
+                        [(x, output)] -> parse (f x) output)
+```
+7. so we can do this:
+```haskell
+mTake1and3 :: Parser (Char, Char)
+mTake1and3 = do
+  x <-  item
+        item 
+  z <-  item
+  return (x, z)
+```
+Useful functions for parsing:
+`sat :: (Char -> Bool) -> Parser Char`
+`many` Parses zero or more occurrences of the given parser.
+```haskell
+int :: Parser Int
+int = do
+  char '-'
+  m <- nat
+  return (-m)
+ <|>
+  nat
+```
 #### Foldable
 
 #### QuickCheck
@@ -214,6 +288,15 @@ instance Applicative [] where
 #### RedBlackTree
 
 #### GADTS
+
+
+### Ressources
+###### references
+https://hackage.haskell.org/package/base-4.11.1.0/docs/Prelude.html
+###### courses
+https://www.seas.upenn.edu/~cis552/13fa/schedule.html
+###### practice
+https://vowi.fsinf.at/wiki/TU_Wien:Funktionale_Programmierung_VU_(Knoop)/Pr%C3%BCfung_2018-03-02
 
 ### Footnotes
 [^cis552monads]: http://www.seas.upenn.edu/~cis552/13fa/lectures/stub/Monads.html
