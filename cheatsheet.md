@@ -46,10 +46,20 @@ _          == _             = False
     Functions as parameters
  - Pure
    Functions without side effects
+ - Category
+   Categories are things that behave like functions, i.e. you can put one after another with a generalized version of (.)
+   generalizes `(.)`
+ - Monoid
+   Monoid is a class of associative binary(2 params) operations with an identity (neutral element).
+   generalizes `(++)`
  - Functor
    Translate "foreign" function for use in this "category" (e.g. container)
+   generalizes `map`
  - Applicative Functor
+   generalizes `zip` or `zipWith`
  - Monad
+   generalizes `concat`
+
  - Infix
    prefix the infix operator *+* `(+) 2 3`
    infix the prefix function *concatPrint* ``"a" `concatPrint` "b"``
@@ -90,15 +100,19 @@ instance Functor Maybe where
 #### Applicative Functor
 > This module describes a structure intermediate between a functor and a monad: it provides pure expressions and sequencing, but no binding. (Technically, a strong lax monoidal functor.)
 
+Functors map over general structures one at the time, but with an Applicative functor you can zip together two or more structures.
+`pure (+) <*> Just 1 <*> Just 2` gives Just 3
+`pure (+) <*> Nothing <*> Just 2` gives Nothing`. The structure affects the result
+
 This is what we do without them:
-```
+```haskell
 listadd :: [Int] -> [Int] -> [Int]
 listadd xs ys = [ x + y | x <- xs, y <- ys ]
 ```
-This is what we want: `fmap2 (+) xs ys`
+This is what we want: `fmap2 (+) xs ys` / `zipWith (+) [1] [2]`
 But with any number of arguments!
 Spaceship operator to the rescue:
-```
+```haskell
 pure :: a -> f a
 (<*>) :: f (a -> b) -> f a -> f b
 ```
@@ -110,7 +124,7 @@ How do you pronounce `<*>` ? [Stack Overflow](https://stackoverflow.com/question
 > All three are, at heart, just regular function application, spiced up a little bit.
 
 Back to the `listadd` we want:
-```
+```haskell
 instance Applicative [] where
   -- pure :: a -> [a]
   pure x    = [x]
@@ -125,6 +139,10 @@ With `<*>` we can go as long as we want! No need for "fmap, fmap2, fmap3, .."
 *This entire section is pretty much stolen from [Prof. Weirich ](http://www.seas.upenn.edu/~cis552/13fa/lectures/stub/Monads.html)*
 By default, Haskell functions are pure. Sometimes we need impure functions, like IO.
 Monads integrate "impure" programming into Haskell, but they are *much* more general than that.
+
+Monads generalize the function `concat :: [[a]] -> [a]` to work with many other sorts of structures besides lists. As a simple example, the monadic operation join can be used to flatten nested Maybe values:
+`join (Just (Just 42))` -- gives Just 42
+`join (Just (Nothing))` -- gives Nothing
 
 Consider this function, it's zipTree but with Maybe so we can catch errors.
 ```
@@ -281,8 +299,32 @@ int = do
  <|>
   nat
 ```
+Parse C Style line comment
+```haskell
+linecomment :: Parser ()
+linecomment = do string "//"
+              many (sat (/= '\n'))
+              char '\n'
+              return ()
+```
 #### Foldable
+##### Monoid
+Monoid is a class of associative binary operations with an identity. 
+Instances should satisfy the following laws:
+- identity element exists
+    -   `x <> mempty = x`
+    - `mempty <> x = x`
+- associativity `x <> (y <> z) = (x <> y) <> z ` 
+note: `(<>) = mappend`
 
+Monoids: 
+- set of integers, the element 0, and `(+)`. 
+- set of positive integers, the element 1, and `(*)`
+- set of all lists, the empty list [], and `(++)`
+- Flip of a pair
+
+Monoids are used to 'combine' and accumulate things. Like reduce a list of sums to single sum.
+[read more](https://www.schoolofhaskell.com/user/mgsloan/monoids-tour)
 #### QuickCheck
 
 #### RedBlackTree
@@ -293,8 +335,12 @@ int = do
 ### Ressources
 ###### references
 https://hackage.haskell.org/package/base-4.11.1.0/docs/Prelude.html
+[Category, Monoid, (Applicative) Functor, Monad](https://stackoverflow.com/questions/15726733/simple-examples-to-illustrate-category-monoid-and-monad)
+
 ###### courses
 https://www.seas.upenn.edu/~cis552/13fa/schedule.html
+https://www.schoolofhaskell.com
+[Best introduction into Monads](http://blog.sigfpe.com/2006/08/you-could-have-invented-monads-and.html)
 ###### practice
 https://vowi.fsinf.at/wiki/TU_Wien:Funktionale_Programmierung_VU_(Knoop)/Pr%C3%BCfung_2018-03-02
 
