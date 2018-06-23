@@ -325,12 +325,65 @@ Monoids:
 
 Monoids are used to 'combine' and accumulate things. Like reduce a list of sums to single sum.
 [read more](https://www.schoolofhaskell.com/user/mgsloan/monoids-tour)
+##### Foldable
+Class of data structures that can be folded to a summary value.
+A Foldable must support `foldr` ->  it has a list representation: `toList = foldr (:) []`
+```haskell
+instance Foldable Tree where
+  -- fold :: Monoid a => Tree a -> a
+  fold (Leaf x) = x
+  fold (Node l r) = fold l `mappend` fold r
+  -- foldMap :: Monoid b => (a -> b) -> Tree a -> b
+  foldMap f (Leaf x)   = f x
+  foldMap f (Node l r) = foldMap f l `mappend` foldMap f r
+  -- foldr (a -> b -> b) -> b -> Tree a -> b
+  foldr f v (Leaf x)   = f x v
+  foldr f v (Node l r) = foldr f (foldr f v r) l
+  -- foldl (a -> b -> a) -> a -> Tree b -> a
+  foldl f v (Leaf x)   = f v x
+  foldl f v (Node l r) = foldl f (foldl f v l) r
+```
 #### QuickCheck
+> The key idea on which QuickCheck is founded is property-based testing. That is, instead of writing individual test cases (eg unit tests corresponding to input-output pairs for particular functions) one should write properties that are desired of the functions, and then automatically generate random tests which can be run to verify (or rather, falsify) the property. -- [Weirich](https://www.seas.upenn.edu/~cis552/13fa/lectures/QuickCheck1.html)
 
+Useful functions for building Generators:
+- **`choose`** takes an interval and returns an random element from that interval:
+   `choose :: (System.Random.Random a) => (a, a) -> Gen a`
+   `*Main> sample $ choose (0, 3)`
+- **`elements`** returns a generator that produces values drawn from the input list
+   `elements :: [a] -> Gen a`
+   `*Main> sample $ elements [10, 20..100]`
+- **`oneof`** allows us to randomly choose between multiple generators
+   `oneof :: [Gen a] -> Gen a`
+   `*Main> sample $ oneof [elements [10,20,30], choose (0,3)]`
+- **`frequency`** allows us to build weighted combinations of individual generators
+   `frequency :: [(Int, Gen a)] -> Gen a`
+
+Generator for lists
+```haskell
+genList ::  (Arbitrary a) => Gen [a]
+genList = frequency [ (1, return [])                        -- 1:7 chance to terminate
+                     , (7, liftM2 (:) arbitrary genList) ]  -- add one arbitrary
+                     
+genOrdList :: (Arbitrary a, Ord a) => Gen [a]
+genOrdList = genList >>= return . sort             -- guarantee ordered list by sorting afterwards
+
+*Main> sample (genOrdList :: Gen [Int])
+```                     
 #### RedBlackTree
 
 #### GADTS
 
+### Examples
+- Insertion Sort
+```haskell
+insert x []                 = [x]
+insert x (y:ys) | x > y     = x : y : ys
+                | otherwise = y : insert x ys
+                
+isort :: Ord a => [a] -> [a]
+isort = foldr insert []           
+```
 
 ### Ressources
 ###### references
