@@ -1,7 +1,15 @@
+# Haskell Cheatsheet
+*v1.a, 24.06.2018, [GitHub](https://github.com/puddyput/haskell_cheatshee)*
+
+In preparation of my exam I assembled this file with notes. It is not exhaustive, some of it is barely explained but I'm almost certain nothing is wrong. It begins with some **basics** after which there is a list of **technical terms**, a glossary of sorts. The **topics** cover functors, applicative functors, monads, parsing, monoids, foldables, quickcheck and GADTs. In the end there are some code **examples** and **references** for further reading.
+I tried to cite my sources when I copied something but may have missed some :/
+
 ### Basics
 This section is a reference for basics. The more complex, theoretical topics come after the technical terms.
 ##### Paranthesis
-$ and .
+`$` is to get rid of paranthesis: `putStrLn (show (1 + 1))` == `putStrLn (show $ 1 + 1)`
+`.` chains functions: `putStrLn (show (1 + 1))` == `(putStrLn . show) (1 + 1)`
+Input type of putStrLn equals output type of show (`String`)
 ##### Guards
 ```haskell
 sign :: Integer -> Integer
@@ -87,6 +95,8 @@ _          == _             = False
    uncurry converts a curried function to a function on pairs.
    `uncurry (+) (1,2)` (one tuple instead of two parameter)
 
+## Topics
+
 #### Functor
 Translate "foreign" function for use in this "category" (e.g. container)
 These laws have to be true:
@@ -117,7 +127,7 @@ instance Functor Maybe where
 
 ```
 #### Applicative Functor
-> This module describes a structure intermediate between a functor and a monad: it provides pure expressions and sequencing, but no binding. (Technically, a strong lax monoidal functor.)
+> This module describes a structure intermediate between a functor and a monad: it provides pure expressions and sequencing, but no binding. (Technically, a strong lax monoidal functor.) [C. A. McCann](https://stackoverflow.com/questions/3242361/haskell-how-is-pronounced)
 
 Functors map over general structures one at the time, but with an Applicative functor you can zip together two or more structures.
 `pure (+) <*> Just 1 <*> Just 2` gives Just 3
@@ -326,7 +336,6 @@ linecomment = do string "//"
               char '\n'
               return ()
 ```
-#### Foldable
 ##### Monoid
 Monoid is a class of associative binary operations with an identity. 
 Instances should satisfy the following laws:
@@ -485,5 +494,3 @@ https://www.schoolofhaskell.com
 ###### practice
 https://vowi.fsinf.at/wiki/TU_Wien:Funktionale_Programmierung_VU_(Knoop)/Pr%C3%BCfung_2018-03-02
 
-### Footnotes
-[^cis552monads]: http://www.seas.upenn.edu/~cis552/13fa/lectures/stub/Monads.html
